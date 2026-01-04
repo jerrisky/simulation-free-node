@@ -8,7 +8,7 @@ from torchdiffeq import odeint, odeint_adjoint
 from utils import append_dims
 from typing import Dict, List
 from .dynamics import get_dynamics
-
+import metrics
 MAX_NUM_STEPS = 1000  # Maximum number of steps for ODE solver
 
 
@@ -118,7 +118,7 @@ class BaseModel(L.LightningModule):
 
     def __init__(self, method='ours', force_zero_prob=0.1, metric_type='accuracy', label_scaler=None, scheduler='none',
                  lr=1e-4, wd=0., task_criterion='ce', dynamics=None, adjoint=False, label_ae_noise=0.0,
-                 total_steps=None, resume_path=None, resume_keys=(), freeze_keys=(),
+                 total_steps=None, resume_path=None, resume_keys=(), freeze_keys=(),sota_values=None,
                  **kwargs):
 
         super().__init__()
@@ -139,7 +139,12 @@ class BaseModel(L.LightningModule):
         self.resume_path = resume_path
         self.resume_keys = resume_keys
         self.freeze_keys = freeze_keys
-
+        self.sota_values = sota_values
+        if isinstance(self.sota_values, str):
+            try:
+                self.sota_values = eval(self.sota_values)
+            except:
+                self.sota_values = None
         if task_criterion == 'mse':
             self.task_criterion = torch.nn.MSELoss()
         elif task_criterion == 'ce':
@@ -163,6 +168,10 @@ class BaseModel(L.LightningModule):
                 f'val/best_rmse': np.inf,
                 f'test/best_rmse': np.inf,
             }
+        elif self.metric_type == 'avg_imp':
+            self.best_metric = {
+                f'val/best_avg_imp': -float('inf'),
+            }
         else:
             raise ValueError(f'Unknown metric type: {self.metric_type}')
 
@@ -170,7 +179,23 @@ class BaseModel(L.LightningModule):
         self.in_projection = None
         self.out_projection = None
         self.label_projection = None
-
+    def calc_avg_improvement(self,current_scores, sota_scores):
+        improvements = []
+        # 0-3: 越小越好 (SOTA - Ours) / SOTA
+        for i in range(4):
+            val = current_scores[i]
+            ref = sota_scores[i]
+            imp = (ref - val) / (ref + 1e-8)
+            improvements.append(imp)
+        
+        # 4-5: 越大越好 (Ours - SOTA) / SOTA
+        for i in range(4, 6):
+            val = current_scores[i]
+            ref = sota_scores[i]
+            imp = (val - ref) / (ref + 1e-8)
+            improvements.append(imp)
+            
+        return np.mean(improvements)
     def setup(self, stage):
         '''
         Delete the label_projection if not needed.
@@ -279,6 +304,15 @@ class BaseModel(L.LightningModule):
                 self.metrics[f'{dataloader_type}/rmse_dopri'] += rmse * bs
             else:
                 self.metrics[f'{dataloader_type}/rmse_{num_timesteps-1}'] += rmse * bs
+        elif self.metric_type == 'avg_imp':
+            if method == 'dopri5':
+                pred_raw = pred.cpu().numpy()
+                Y_true = Y.cpu().numpy()
+                scores = metrics.score(Y_true, pred_raw)
+                keys = ['Cheby', 'Clark', 'Canbe', 'KL', 'Cosine', 'Inter']
+                for i, key in enumerate(keys):
+                    full_key = f'{dataloader_type}/{key}'
+                    self.metrics[full_key] += scores[i] * bs
         else:
             raise ValueError(f'Unknown metric type: {self.metric_type}')
 
@@ -393,7 +427,9 @@ class BaseModel(L.LightningModule):
                 self.metrics[f'{dataloader_type}/{self.metric_type}_{num_euler_steps}'] = torch.tensor(0.)
             self.metrics[f'{dataloader_type}/{self.metric_type}_dopri'] = 0.
             self.metrics[f'{dataloader_type}/dopri_nfe'] = 0.
-
+            if self.metric_type == 'avg_imp':
+                 for key in ['Cheby', 'Clark', 'Canbe', 'KL', 'Cosine', 'Inter']:
+                     self.metrics[f'{dataloader_type}/{key}'] = 0.
         self.data_count = {
             'val': 0.,
             'test': 0.,
@@ -463,7 +499,17 @@ class BaseModel(L.LightningModule):
 
             if self.metrics['test/rmse_dopri'] < self.best_metric['test/best_rmse']:
                 self.best_metric['test/best_rmse'] = self.metrics['test/rmse_dopri']
-
+        elif self.metric_type == 'avg_imp':
+            if self.sota_values is not None:
+                curr_scores = []
+                for key in ['Cheby', 'Clark', 'Canbe', 'KL', 'Cosine', 'Inter']:
+                    curr_scores.append(self.metrics.get(f'val/{key}', 0.))
+                avg_imp = self.calc_avg_improvement(curr_scores, self.sota_values)
+                self.log('val/avg_imp', avg_imp, sync_dist=True)
+                if 'val/best_avg_imp' not in self.best_metric:
+                    self.best_metric['val/best_avg_imp'] = -float('inf')
+                if avg_imp > self.best_metric['val/best_avg_imp']:
+                    self.best_metric['val/best_avg_imp'] = avg_imp
         # log all metrics
         self.log_dict(self.metrics, sync_dist=True)
         self.log_dict(self.best_metric, sync_dist=True, prog_bar=True)

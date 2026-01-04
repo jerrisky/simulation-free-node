@@ -18,5 +18,7 @@ def compute_task_criterion(task_type):
 def compute_metric_type(task_type):
     if task_type == 'classification':
         return 'accuracy'
+    elif task_type == 'ldl':  # 【新增这一行！】
+        return 'avg_imp'
     else:
         return 'rmse'

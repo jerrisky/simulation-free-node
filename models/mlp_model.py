@@ -170,6 +170,8 @@ class MLPModel(BaseModel):
 
         if in_proj == 'identity' or in_proj is False:
             self.in_projection = nn.Flatten()
+        elif in_proj == 'linear':
+            self.in_projection = nn.Linear(data_dim, latent_dim)
         elif in_proj == 'mlp' or in_proj is True:
             latent_dim = self.odeblock.odefunc.input_dim
             in_projection = [

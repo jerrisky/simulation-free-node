@@ -78,10 +78,17 @@ class CustomLightningCLI(LightningCLI):
         print(f"Using total batch size {total} = {num_gpus} x {per_gpu}")
 
 
-if __name__ == '__main__':
+def main(args=None):
     cli = CustomLightningCLI(model_class=BaseModel,
                              subclass_mode_model=True,
                              datamodule_class=Data,
                              save_config_kwargs={"overwrite": True},
-                             run=True,)
-    print(f'Done.')
+                             run=True,
+                             args=args)
+    metrics = cli.trainer.callback_metrics
+    if 'val/avg_imp' in metrics:
+        return metrics['val/avg_imp'].item()
+    return -99999999.0
+if __name__ == '__main__':
+    res = main()
+    print(f"Done. Result: {res}")
