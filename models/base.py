@@ -502,14 +502,21 @@ class BaseModel(L.LightningModule):
         elif self.metric_type == 'avg_imp':
             if self.sota_values is not None:
                 curr_scores = []
+                metrics_dict = {}
                 for key in ['Cheby', 'Clark', 'Canbe', 'KL', 'Cosine', 'Inter']:
-                    curr_scores.append(self.metrics.get(f'val/{key}', 0.))
+                    val = self.metrics.get(f'val/{key}', 0.)
+                    curr_scores.append(val)
+                    metrics_dict[key] = val
                 avg_imp = self.calc_avg_improvement(curr_scores, self.sota_values)
                 self.log('val/avg_imp', avg_imp, sync_dist=True)
                 if 'val/best_avg_imp' not in self.best_metric:
                     self.best_metric['val/best_avg_imp'] = -float('inf')
                 if avg_imp > self.best_metric['val/best_avg_imp']:
                     self.best_metric['val/best_avg_imp'] = avg_imp
+                print(f" Epoch {self.current_epoch}: val/avg_imp = {avg_imp:.4f}")
+                print(f" Details: Cheby={metrics_dict['Cheby']:.4f}, Clark={metrics_dict['Clark']:.4f}, "
+                      f"Canbe={metrics_dict['Canbe']:.4f}, KL={metrics_dict['KL']:.4f}, "
+                      f"Cos={metrics_dict['Cosine']:.4f}, Inter={metrics_dict['Inter']:.4f}")
         # log all metrics
         self.log_dict(self.metrics, sync_dist=True)
         self.log_dict(self.best_metric, sync_dist=True, prog_bar=True)

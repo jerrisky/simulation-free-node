@@ -23,7 +23,7 @@ class CustomLightningCLI(LightningCLI):
         parser.link_arguments("trainer.max_steps", "model.init_args.total_steps")
         # automatic linking of arguments
         parser.link_arguments("name", "trainer.logger.init_args.name")
-        parser.link_arguments("name", "trainer.default_root_dir", compute_fn=lambda x: os.path.join("logs", x))
+        # parser.link_arguments("name", "trainer.default_root_dir", compute_fn=lambda x: os.path.join("logs", x))
         parser.link_arguments("data.task_type", "model.init_args.task_criterion", compute_fn=compute_task_criterion)
         parser.link_arguments("data.task_type", "model.init_args.metric_type", compute_fn=compute_metric_type)
 
@@ -42,10 +42,10 @@ class CustomLightningCLI(LightningCLI):
             self.config[mode]['model']['init_args']['hidden_dim'] = self.config[mode]['model']['init_args']['latent_dim']
 
         # set save_dir of logger
-        name = self.config[mode]['trainer']['logger']['init_args']['name']
-        self.config[mode]['trainer']['logger']['init_args']['save_dir'] = os.path.join(
-            self.config[mode]['trainer']['logger']['init_args']['save_dir'], name)
-        os.makedirs(self.config[mode]['trainer']['logger']['init_args']['save_dir'], exist_ok=True)
+        # name = self.config[mode]['trainer']['logger']['init_args']['name']
+        # self.config[mode]['trainer']['logger']['init_args']['save_dir'] = os.path.join(
+        #     self.config[mode]['trainer']['logger']['init_args']['save_dir'], name)
+        # os.makedirs(self.config[mode]['trainer']['logger']['init_args']['save_dir'], exist_ok=True)
 
     def instantiate_classes(self):
         '''
@@ -85,10 +85,26 @@ def main(args=None):
                              save_config_kwargs={"overwrite": True},
                              run=True,
                              args=args)
+    
+    # 获取 Lightning 记录的所有指标
     metrics = cli.trainer.callback_metrics
+    
+    # 如果是 LDL 任务（avg_imp 模式），构造包含所有细分指标的字典返回
     if 'val/avg_imp' in metrics:
-        return metrics['val/avg_imp'].item()
-    return -99999999.0
+        return {
+            'avg_imp': metrics['val/avg_imp'].item(),
+            'Cheby': metrics.get('val/Cheby', torch.tensor(0.0)).item(),
+            'Clark': metrics.get('val/Clark', torch.tensor(0.0)).item(),
+            'Canbe': metrics.get('val/Canbe', torch.tensor(0.0)).item(),
+            'KL': metrics.get('val/KL', torch.tensor(0.0)).item(),
+            'Cosine': metrics.get('val/Cosine', torch.tensor(0.0)).item(),
+            'Inter': metrics.get('val/Inter', torch.tensor(0.0)).item()
+        }
+    
+    # 如果没找到指标（例如异常退出），返回一个默认值字典防止 auto_run 崩溃
+    return {'avg_imp': -999999.0}
+
 if __name__ == '__main__':
     res = main()
+    # 打印时也会显示完整的指标字典
     print(f"Done. Result: {res}")

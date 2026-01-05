@@ -1,0 +1,100 @@
+nohup: ignoring input
+======== 🚀 Start Task: Gene ========
+
+--- Fold 0 ---
+Seed set to 0
+Trainer already configured with model summary callbacks: [<class 'lightning.pytorch.callbacks.rich_model_summary.RichModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+Using total batch size 64 = 1 x 64
+wandb: WARNING The anonymous setting has no effect and will be removed in a future version.
+wandb: Tracking run with wandb version 0.23.1
+wandb: W&B syncing is set to `offline` in this directory. Run `wandb online` or set WANDB_MODE=online to enable cloud syncing.
+wandb: Run data is saved locally in logs/wandb/offline-run-20260105_102452-xqa67tjk
+[!] 0 parameters are freezed.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0,1,2,3]
+┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃    ┃ Name                               ┃ Type      ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0  │ task_criterion                     │ MSELoss   │      0 │ train │     0 │
+│ 1  │ label_ae_criterion                 │ MSELoss   │      0 │ train │     0 │
+│ 2  │ odeblock                           │ ODEBlock  │  462 K │ train │     0 │
+│ 3  │ odeblock.odefunc                   │ MLPODEFu… │  462 K │ train │     0 │
+│ 4  │ odeblock.odefunc.fc1               │ Linear    │ 66.0 K │ train │     0 │
+│ 5  │ odeblock.odefunc.fc2               │ Linear    │ 66.0 K │ train │     0 │
+│ 6  │ odeblock.odefunc.fc3               │ Linear    │ 66.0 K │ train │     0 │
+│ 7  │ odeblock.odefunc.non_linearity     │ ReLU      │      0 │ train │     0 │
+│ 8  │ odeblock.odefunc.tmlp_blocks       │ ModuleLi… │  264 K │ train │     0 │
+│ 9  │ odeblock.odefunc.tmlp_blocks.0     │ tMLPBlock │ 66.0 K │ train │     0 │
+│ 10 │ odeblock.odefunc.tmlp_blocks.0.fc1 │ Linear    │ 66.0 K │ train │     0 │
+│ 11 │ odeblock.odefunc.tmlp_blocks.1     │ tMLPBlock │ 66.0 K │ train │     0 │
+│ 12 │ odeblock.odefunc.tmlp_blocks.1.fc1 │ Linear    │ 66.0 K │ train │     0 │
+│ 13 │ odeblock.odefunc.tmlp_blocks.2     │ tMLPBlock │ 66.0 K │ train │     0 │
+│ 14 │ odeblock.odefunc.tmlp_blocks.2.fc1 │ Linear    │ 66.0 K │ train │     0 │
+│ 15 │ odeblock.odefunc.tmlp_blocks.3     │ tMLPBlock │ 66.0 K │ train │     0 │
+│ 16 │ odeblock.odefunc.tmlp_blocks.3.fc1 │ Linear    │ 66.0 K │ train │     0 │
+│ 17 │ in_projection                      │ Linear    │  9.5 K │ train │     0 │
+│ 18 │ out_projection                     │ Linear    │ 17.5 K │ train │     0 │
+│ 19 │ label_projection                   │ Linear    │ 17.7 K │ train │     0 │
+└────┴────────────────────────────────────┴───────────┴────────┴───────┴───────┘
+Trainable params: 506 K                                                         
+Non-trainable params: 0                                                         
+Total params: 506 K                                                             
+Total estimated model params size (MB): 2                                       
+Modules in train mode: 20                                                       
+Modules in eval mode: 0                                                         
+Total FLOPs: 0                                                                  
+ Epoch 0: val/avg_imp = -12.7150
+ Details: Cheby=0.4638, Clark=7.1790, Canbe=57.0391, KL=13.6524, Cos=0.0807, Inter=-3.4464
+ Epoch 14: val/avg_imp = -0.0169
+ Details: Cheby=0.0536, Clark=2.1386, Canbe=14.6809, KL=0.2422, Cos=0.8302, Inter=0.7807
+ Epoch 29: val/avg_imp = -0.0163
+ Details: Cheby=0.0536, Clark=2.1405, Canbe=14.6940, KL=0.2407, Cos=0.8301, Inter=0.7805
+ Epoch 43: val/avg_imp = -0.0164
+ Details: Cheby=0.0536, Clark=2.1461, Canbe=14.7351, KL=0.2395, Cos=0.8298, Inter=0.7798
+ Epoch 58: val/avg_imp = -0.0170
+ Details: Cheby=0.0537, Clark=2.1386, Canbe=14.6958, KL=0.2418, Cos=0.8302, Inter=0.7806
+ Epoch 72: val/avg_imp = -0.0168
+ Details: Cheby=0.0536, Clark=2.1392, Canbe=14.6842, KL=0.2419, Cos=0.8303, Inter=0.7807
+`Trainer.fit` stopped: `max_steps=10000` reached.
+`weights_only` was not set, defaulting to `False`.
+[!] Saved last checkpoint at ./logs/last_step=10000.ckpt
+Epoch 74/-2 ━━━━━━━━━━━━━━━━ 10/10 0:00:00 • 0:00:00 53.83it/s v_num: 7tjk      
+                                                               val/best_avg_imp:
+                                                               -0.016           
+wandb: 
+wandb: Run history:
+wandb:           epoch ▁▂▂▂▂▂▂▂▂▂▃▃▃▄▄▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▆▇▇▇████
+wandb:        lr-AdamW ████▇▇▇▇▇▇▇▇▆▆▆▅▅▅▄▄▄▃▃▃▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁
+wandb:      test/Canbe ▁▃█▃▁
+wandb:      test/Cheby ▅▆▁█▆
+wandb:      test/Clark ▁▃█▁▂
+wandb:     test/Cosine ▇▆▁▇█
+wandb:      test/Inter █▆▁▇█
+wandb:         test/KL █▄▁▇▇
+wandb:  test/avg_imp_1 ▁▁▁▁▁
+wandb: test/avg_imp_10 ▁▁▁▁▁
+wandb:             +23 ...
+wandb: 
+wandb: Run summary:
+wandb:           epoch 74
+wandb:        lr-AdamW 0.0
+wandb:      test/Canbe 14.68425
+wandb:      test/Cheby 0.05363
+wandb:      test/Clark 2.13922
+wandb:     test/Cosine 0.83029
+wandb:      test/Inter 0.78071
+wandb:         test/KL 0.24186
+wandb:  test/avg_imp_1 0
+wandb: test/avg_imp_10 0
+wandb:             +23 ...
+wandb: 
+wandb: You can sync this run to the cloud by running:
+wandb: wandb sync logs/wandb/offline-run-20260105_102452-xqa67tjk
+wandb: Find logs at: logs/wandb/offline-run-20260105_102452-xqa67tjk/logs
+Traceback (most recent call last):
+  File "/home/ubuntu/zxj/sfnode/auto_run_sfnode.py", line 179, in <module>
+    run_experiment(args.dataset, args.device)
+  File "/home/ubuntu/zxj/sfnode/auto_run_sfnode.py", line 98, in run_experiment
+    print(f"Fold {fold} Imp: {imp:.4f}")
+TypeError: unsupported format string passed to dict.__format__
