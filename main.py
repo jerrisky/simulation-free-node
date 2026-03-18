@@ -32,6 +32,23 @@ class CustomLightningCLI(LightningCLI):
         if mode is None:
             return  # not running subcommand
 
+        # ================= 🔴 核心修改 1：强制修正日志和权重保存路径 =================
+        # 获取 Runner 传入的 default_root_dir (例如 ../Logs/SFNO/dataset/...)
+        root_dir = self.config[mode]['trainer'].get('default_root_dir')
+
+        # 如果指定了 root_dir，且配置了 Logger，强制将 Logger 的路径指向 root_dir
+        if root_dir and 'logger' in self.config[mode]['trainer']:
+            # 确保 logger 不是 False
+            if self.config[mode]['trainer']['logger']:
+                # 1. 强制覆盖 save_dir，使其与 runner 指定的目录一致
+                self.config[mode]['trainer']['logger']['init_args']['save_dir'] = root_dir
+                
+                # 2. 清空 name 和 version，防止生成 'name/version_0' 这种多余子目录
+                # 这样 Checkpoints 就会直接出现在 root_dir/checkpoints/ 下
+                self.config[mode]['trainer']['logger']['init_args']['name'] = ""
+                self.config[mode]['trainer']['logger']['init_args']['version'] = ""
+        # ================= 🔴 修改结束 =================
+
         self.config[mode]['trainer']['gradient_clip_val'] = 1.0 if self.config[mode]['model'][
             'init_args']['method'] == 'node' or self.config[mode]['data']['dataset'] == 'uci' else 0.
 
@@ -40,12 +57,6 @@ class CustomLightningCLI(LightningCLI):
             assert self.config[mode]['data']['dataset'] == 'uci'
         if self.config[mode]['data']['dataset'] == 'uci':
             self.config[mode]['model']['init_args']['hidden_dim'] = self.config[mode]['model']['init_args']['latent_dim']
-
-        # set save_dir of logger
-        # name = self.config[mode]['trainer']['logger']['init_args']['name']
-        # self.config[mode]['trainer']['logger']['init_args']['save_dir'] = os.path.join(
-        #     self.config[mode]['trainer']['logger']['init_args']['save_dir'], name)
-        # os.makedirs(self.config[mode]['trainer']['logger']['init_args']['save_dir'], exist_ok=True)
 
     def instantiate_classes(self):
         '''
@@ -86,7 +97,27 @@ def main(args=None):
                              run=True,
                              args=args)
     
-    # 获取 Lightning 记录的所有指标
+    # ================= 🔴 核心修改 2：加载 Best Model 并重新验证 =================
+    print("-" * 50)
+    print("🔄 Training Finished. Checking for Best Checkpoint...")
+    
+    # 检查是否配置了 ModelCheckpoint 且找到了最佳模型
+    if cli.trainer.checkpoint_callback and cli.trainer.checkpoint_callback.best_model_path:
+        best_path = cli.trainer.checkpoint_callback.best_model_path
+        print(f"✅ Found Best Model at: {best_path}")
+        print("🚀 Reloading Best Model weights to run validation...")
+        
+        # 这一步非常关键：
+        # 1. 加载 best_model_path 的权重
+        # 2. 在验证集上跑一遍
+        # 3. 更新 cli.trainer.callback_metrics 为该权重的指标
+        cli.trainer.validate(ckpt_path='best', dataloaders=cli.datamodule.val_dataloader())
+    else:
+        print("⚠️ No Best Checkpoint found! Using LAST epoch metrics.")
+    print("-" * 50)
+    # ================= 🔴 修改结束 =================
+
+    # 获取 Lightning 记录的所有指标 (此时如果是 Best，这里就是 Best 的值)
     metrics = cli.trainer.callback_metrics
     
     # 如果是 LDL 任务（avg_imp 模式），构造包含所有细分指标的字典返回

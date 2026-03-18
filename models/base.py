@@ -308,6 +308,7 @@ class BaseModel(L.LightningModule):
             if method == 'dopri5':
                 pred_raw = pred.cpu().numpy()
                 Y_true = Y.cpu().numpy()
+                pred_raw = metrics.proj(pred_raw)
                 scores = metrics.score(Y_true, pred_raw)
                 keys = ['Cheby', 'Clark', 'Canbe', 'KL', 'Cosine', 'Inter']
                 for i, key in enumerate(keys):

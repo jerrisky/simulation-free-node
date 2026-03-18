@@ -37,11 +37,27 @@ def load_sota_values(dataset_name):
             d['KL']['mean'], d['Cosine']['mean'], d['Inter']['mean']]
 
 def get_dims(dataset_name):
-    feat_run_dir = os.path.join(DATA_ROOT, "feature", dataset_name, 'run_0')
-    feat_path = os.path.join(feat_run_dir, 'train_feature.npy')
-    label_path = os.path.join(feat_run_dir, 'train_label.npy')
+    # 定义可能的两个根目录
+    feature_root = os.path.join(DATA_ROOT, "feature", dataset_name, 'run_0')
+    image_root = os.path.join(DATA_ROOT, "image", dataset_name, 'run_0')
+    
+    # 自动探测路径
+    if os.path.exists(feature_root):
+        target_dir = feature_root
+    elif os.path.exists(image_root):
+        target_dir = image_root
+    else:
+        raise FileNotFoundError(f"❌ 找不到数据集 {dataset_name} 的数据。请检查 {feature_root} 或 {image_root} 是否存在。")
+    
+    print(f"📂 自动识别数据路径: {target_dir}")
+    
+    feat_path = os.path.join(target_dir, 'train_feature.npy')
+    label_path = os.path.join(target_dir, 'train_label.npy')
+    
+    # 使用 mmap_mode 读取以节省内存，仅获取维度
     feat = np.load(feat_path, mmap_mode='r')
     label = np.load(label_path, mmap_mode='r')
+    
     return feat.shape[1], label.shape[1]
 
 def run_experiment(dataset, device):
@@ -90,7 +106,7 @@ def run_experiment(dataset, device):
                 f"--trainer.default_root_dir={param_dir}", # 关键：存入 search/params_n
                 "--trainer.accelerator", "gpu",
                 f"--trainer.devices=[{device}]",
-                "--trainer.max_steps", "10000",
+                "--trainer.max_steps", "6000",
             ]
             res_dict = run_training(args)  # 接收返回的字典
             imp = res_dict['avg_imp']      # 提取用于比较和打印的浮点数分数
@@ -132,7 +148,7 @@ def run_experiment(dataset, device):
             f"--trainer.default_root_dir={run_dir}", # 关键：存入 formal/run_n
             "--trainer.accelerator", "gpu",
             f"--trainer.devices=[{device}]",
-            "--trainer.max_steps", "200000",
+            "--trainer.max_steps", "100000",
         ]
         print(f"--> Full Run {run_idx}/10 ... ", end="")
         sys.stdout.flush()
@@ -147,7 +163,7 @@ def run_experiment(dataset, device):
     with open(os.path.join(base_log_dir, "result.txt"), "w") as f:
         f.write(f"Dataset: {dataset}\n")
         f.write(f"Best Params: {json.dumps(best_params)}\n\n")
-        
+        f.write(f"Best Search AvgImp: {best_avg_imp:.4f}\n")
         metrics_keys = ['avg_imp', 'Cheby', 'Clark', 'Canbe', 'KL', 'Cosine', 'Inter']
         
         # 1. 输出每个 split 的详细数据表格
@@ -170,7 +186,6 @@ def run_experiment(dataset, device):
             f.write(f"{k.ljust(10)}: {mean_val:.4f} ± {std_val:.4f}\n")
 
     print(f"✅ {dataset} All results saved to result.txt")
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", required=True)

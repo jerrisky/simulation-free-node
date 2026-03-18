@@ -20,7 +20,8 @@ class Data(L.LightningDataModule):
         self.aug_type = aug_type
         self.fold_idx = fold_idx
         ldl_list = ["SBU_3DFE", "Scene", "Gene", "Movie", "RAF_ML", "Ren_Cecps", 
-                    "SJAFFE", "M2B", "SCUT_FBP5500", "Twitter_LDL", "Flickr_LDL", "SCUT_FBP"]
+            "SJAFFE", "M2B", "SCUT_FBP5500", "Twitter_LDL", "Flickr_LDL", "SCUT_FBP",
+            "MAFW", "DAiSEE"]
         if self.dataset_name in ['cifar10', 'cifar100', 'mnist', 'svhn']:
             self.train_dataset, self.eval_dataset, self.test_dataset = classification.get_datasets(
                 root=root, data_aug=self.data_aug, name=self.dataset_name, perc=self.val_perc, aug_type=aug_type)
